@@ -1,0 +1,75 @@
+steps:
+- checkout: self
+
+- task: PowerShell@2
+  displayName: 'Waiting IS started'
+  inputs:
+    targetType: 'inline'
+    script: 'Start-Sleep -Seconds 90'
+
+# Download Open API
+
+- task: CmdLine@2
+  displayName: 'Download OpenAPI'
+  inputs:
+    script: |
+      powershell wget http://$(is-name)-http-$(namespaceSecret).$(cluster-endpoint)/$(project-name)/v1/swagger.json -o $(project-name).json 
+      echo OpenAPI downloaded
+
+- task: PythonScript@0
+  displayName: 'Converting .json to .yml'
+  inputs:
+    scriptSource: 'inline'
+    script: |
+      import yaml
+      import json 
+       
+      file = open('$(project-name).yaml','w')
+      file.write(yaml.dump(json.load(open("$(project-name).json"))))
+      file.close()
+
+# Creating API
+
+- task: CmdLine@2
+  displayName: 'Creating API in APIC'
+  inputs:
+    script: 'apic draft-apis:create simple_api.yaml -o org-provide -s {server}'
+
+- task: CmdLine@2
+  displayName: 'Downloading API from APIC'
+  inputs:
+    script: |
+      apic draft-apis:get $(project-name):1.0.0 -o $(org-prov) -s $(server-apic)
+  
+- task: CmdLine@2
+  displayName: 'Moving API'
+  inputs:
+    script: |
+      move $(project-name)_1.0.0.yaml $(system.defaultworkingdirectory)\templates\assets
+# Pubishing API
+
+- task: CmdLine@2
+  displayName: 'Login APIC'
+  inputs:
+    script: 'apic login -s $(server-apic) -r $(region-apic)  -u $(user-apic) -p $(pass-apic)'
+
+- task: CmdLine@2
+  displayName: 'List all products'
+  inputs:
+    script: 'apic products:list-all -s $(server-apic) -o $(org-prov) --scope catalog --catalog  qa'
+
+
+- task: CmdLine@2
+  displayName: 'Creating new product'
+  inputs:
+    script: 'apic create:product --title "$(product-name)" --version 1.0.0 --apis $(project-name).yaml --filename templates\assets\producto-lab.yaml --gateway-type $(gw-type)'
+
+- task: CmdLine@2
+  displayName: 'Pubishing product'
+  inputs:
+    script: 'apic products:publish templates\assets\producto-lab.yaml  --catalog  qa -s $(server-apic) -o $(org-prov) --format json'
+
+- task: CmdLine@2
+  displayName: 'Creating new app'
+  inputs:
+    script: 'apic apps:create -s $(server-apic) --catalog qa --consumer-org $(org-cons) -o $(org-prov) templates\assets\app-lab.yaml --format json'

@@ -1,0 +1,54 @@
+
+trigger:
+- main
+
+pool: 
+  name: PoC IBK
+
+variables: 
+  - template: variables.yml
+
+stages:
+- stage: PublishApplication
+  displayName: Publish Application in APIC
+  jobs: 
+  - deployment: PublishAPIC
+    workspace:
+      clean: all
+    displayName: Publishing in APIC
+    environment: $(environmentValue)
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - template: templates/publishing-api.yml
+
+- stage: 'Testing'
+  jobs:
+  - job: GetCredentials
+    steps:
+    - bash: |
+        echo "##vso[task.setvariable variable=xAPIKey;isOutput=true]$(xapikey)"
+        echo "##vso[task.setvariable variable=xAPISecret;isOutput=true]$(xapisecret)"
+      name: credentials
+  - job: ResquestTestingAPI
+    pool: server
+    timeoutInMinutes: 1
+    cancelTimeoutInMinutes: 1
+    dependsOn: GetCredentials
+    variables:
+      xapikey: $[dependencies.GetCredentials.outputs['credentials.xAPIKey']]
+      xapisecret: $[dependencies.GetCredentials.outputs['credentials.xAPISecret']]
+    steps:
+    - task: InvokeRESTAPI@1
+      inputs:
+        connectionType: 'connectedServiceName'
+        serviceConnection: 'apiTesting'
+        method: 'GET'
+        headers: |
+          {
+          "Content-Type":"application/json",
+          "X-API-Key": "$(xapikey)",
+          "X-API-Secret": "$(xapisecret)"
+          }
+        waitForCompletion: 'false'
