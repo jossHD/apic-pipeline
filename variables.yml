@@ -1,11 +1,5 @@
 variables:
-- group: gitops-cred-sb-001
-- group: gitops-app-sb-001
-- group: cluster-env-dev-001
 - group: env-sb-001
-- group: ace-api-values
-- group: cred-apic
-- group: dev-apic
 - group: apic-testing-dev-001
 
 - name: runNumber
