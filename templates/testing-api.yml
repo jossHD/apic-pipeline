@@ -3,8 +3,8 @@ steps:
 - task: InvokeRESTAPI@1
   inputs:
     connectionType: 'connectedServiceName'
-    serviceConnection: 'apiTesting'
-    method: 'GET'
+    serviceConnection: 'api Testing'
+    method: 'POST'
     headers: |
       {
       "Content-Type":"application/json",
@@ -16,6 +16,6 @@ steps:
         "options":{
           "allAssertions":true,
           "JUnitFormat":false
-          }
-      }
+        }
+       }
     waitForCompletion: 'false'
