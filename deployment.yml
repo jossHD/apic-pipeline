@@ -29,7 +29,7 @@ stages:
     - task: InvokeRESTAPI@1
       inputs:
         connectionType: 'connectedServiceName'
-        serviceConnection: 'apiTesting'
+        serviceConnection: 'api Testing'
         method: 'GET'
         headers: |
           {
