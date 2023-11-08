@@ -9,7 +9,8 @@ variables:
   - template: variables.yml
 
 stages:
-- stage: 'Testing'
+- stage: 'TestApplication'
+  displayName: Testing Application in APIC
   jobs:
   - job: GetCredentials
     steps:
@@ -17,7 +18,8 @@ stages:
         echo "##vso[task.setvariable variable=xAPIKey;isOutput=true]$(xapikey)"
         echo "##vso[task.setvariable variable=xAPISecret;isOutput=true]$(xapisecret)"
       name: credentials
-  - job: ResquestTestingAPI
+  - deployment:  ResquestTestingAPI
+    environment: $(environmentValue)
     pool: server
     timeoutInMinutes: 1
     cancelTimeoutInMinutes: 1
@@ -25,16 +27,8 @@ stages:
     variables:
       xapikey: $[dependencies.GetCredentials.outputs['credentials.xAPIKey']]
       xapisecret: $[dependencies.GetCredentials.outputs['credentials.xAPISecret']]
-    steps:
-    - task: InvokeRESTAPI@1
-      inputs:
-        connectionType: 'connectedServiceName'
-        serviceConnection: 'api Testing'
-        method: 'GET'
-        headers: |
-          {
-          "Content-Type":"application/json",
-          "X-API-Key": "$(xapikey)",
-          "X-API-Secret": "$(xapisecret)"
-          }
-        waitForCompletion: 'false'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - template: templates/testing-api.yml
